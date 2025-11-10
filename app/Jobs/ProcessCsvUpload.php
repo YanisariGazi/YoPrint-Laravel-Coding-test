@@ -47,7 +47,7 @@ class ProcessCsvUpload implements ShouldQueue
 
             $records = $csv->getRecords();
             $chunks = collect();
-            throw new Exception('gagaleee', 500);
+
             foreach ($records as $i => $record) {
                 $row = $this->normalizeRow($record);
 
