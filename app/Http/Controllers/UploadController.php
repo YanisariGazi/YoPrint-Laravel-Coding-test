@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\FileUploadResource;
 use App\Jobs\ProcessCsvUpload;
 use App\Models\FileUpload;
 use App\Models\Product;
@@ -74,17 +75,7 @@ class UploadController extends Controller
         try {
             $datas = $this->fileUpload->orderBy('created_at', 'desc')->get();
 
-            return $this->success(data: $datas);
-        } catch (\Throwable $e) {
-            return $this->error_code($e->getMessage(), $e->getCode());
-        }
-    }
-
-    public function show($id) {
-        try {
-            $data = $this->fileUpload->findOrFail($id);
-
-            return $this->success(data: $data);
+            return $this->success(data: FileUploadResource::collection($datas));
         } catch (\Throwable $e) {
             return $this->error_code($e->getMessage(), $e->getCode());
         }
@@ -98,7 +89,7 @@ class UploadController extends Controller
         ], $code);
     }
 
-    private function error($message = 'error', $code = 402) {
+    private function error($message = 'error', $code = 404) {
         return response()->json([
             'message' => $message,
             'code' => $code,
