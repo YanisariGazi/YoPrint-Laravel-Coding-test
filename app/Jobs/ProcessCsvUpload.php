@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use League\Csv\Reader;
 use League\Csv\Exception as CsvException;
+use Throwable;
 
 class ProcessCsvUpload implements ShouldQueue
 {
@@ -114,7 +115,16 @@ class ProcessCsvUpload implements ShouldQueue
         $normalized = [];
         foreach ($record as $k => $v) {
             $key = strtoupper(trim($k));
-            $normalized[$key] = is_string($v) ? trim($v) : $v;
+
+            if (is_string($v)) {
+                $v = trim($v);
+                // Tambahkan titik koma jika entitas numeric HTML tidak diakhiri dengan ;
+                $v = preg_replace('/&#(\d+)(?!;)/', '&#$1;', $v);
+                // Decode entitas menjadi karakter asli
+                $v = html_entity_decode($v, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
+
+            $normalized[$key] = $v;
         }
         return $normalized;
     }
@@ -126,5 +136,13 @@ class ProcessCsvUpload implements ShouldQueue
         $clean = preg_replace('/[^\d\.\-]/', '', $val);
         if ($clean === '') return null;
         return (float)$clean;
+    }
+
+    public function failed(Throwable $e): void
+    {
+        $upload = FileUpload::find($this->fileUpload->id);
+        if ($upload) {
+            $upload->update(['status' => 'failed', 'error' => $e->getMessage(), 'finished_at' => now()]);
+        }
     }
 }
