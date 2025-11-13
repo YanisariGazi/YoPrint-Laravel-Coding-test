@@ -21,6 +21,7 @@ class FileUploadResource extends JsonResource
             'error' => $this->error,
             'processed_at' => $this->processed_at->format('Y-m-d H:i:s'),
             'finished_at' => $this->finished_at->format('Y-m-d H:i:s'),
+            'created_at' => $this->created_at->format('Y-m-d H:i:s'),
         ];
     }
 }
