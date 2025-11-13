@@ -1,101 +1,92 @@
-<!-- resources/views/uploads/index.blade.php -->
 <!doctype html>
-<html>
+<html lang="en">
 
 <head>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>CSV Uploads</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px
+        .drop-zone {
+            border: 2px dashed #ced4da;
+            border-radius: 6px;
+            padding: 30px;
+            text-align: center;
+            color: #6c757d;
+            cursor: pointer;
+            transition: border-color 0.2s;
         }
 
-        .upload-box {
-            border: 2px dashed #ccc;
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center
-        }
-
-        .upload-left {
-            flex: 1;
-            padding-right: 20px
-        }
-
-        .upload-btn {
-            padding: 10px 16px
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px
-        }
-
-        th,
-        td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: left
+        .drop-zone.dragover {
+            border-color: #0d6efd;
+            background-color: #f8f9fa;
         }
 
         .status-pending {
-            background: #fff3cd
+            background: #fff3cd !important;
         }
 
         .status-processing {
-            background: #d1ecf1
+            background: #cff4fc !important;
         }
 
         .status-completed {
-            background: #d4edda
+            background: #d1e7dd !important;
         }
 
         .status-failed {
-            background: #f8d7da
+            background: #f8d7da !important;
         }
     </style>
 </head>
 
-<body>
-    <h2>Upload CSV</h2>
-    <div class="upload-box">
-        <div class="upload-left">
-            <form id="uploadForm" enctype="multipart/form-data">
-                <div style="margin-bottom:8px">Select file / Drag and drop</div>
-                <input type="file" name="file" id="file" accept=".csv,text/csv">
-                <button type="submit" class="upload-btn">Upload File</button>
-            </form>
-            <div id="message" style="margin-top:8px;color:#666"></div>
+<body class="bg-light py-4">
+    <div class="container">
+        <h2 class="mb-4 text-center">Upload CSV</h2>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="drop-zone mb-3" id="dropZone">
+                        <div>Select file / Drag and drop</div>
+                        <input type="file" name="file" id="file" accept=".csv,text/csv"
+                            class="form-control mt-3 w-auto mx-auto" style="max-width:300px">
+                    </div>
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary">Upload File</button>
+                    </div>
+                </form>
+                <div id="message" class="text-center mt-3 text-muted"></div>
+            </div>
         </div>
-        <div style="width:160px;text-align:right">
-            <img src="" alt="" style="opacity:0.2;width:120px">
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Recent Uploads</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-striped align-middle mb-0" id="uploadsTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" class="w-25">Time</th>
+                            <th scope="col" class="w-25">File Name</th>
+                            <th scope="col" class="w-50">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- dynamic rows -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <h3>Recent Uploads</h3>
-    <table id="uploadsTable">
-        <thead>
-            <tr>
-                <th>Time</th>
-                <th>File Name</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-
     <script>
-        const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
         async function fetchUploads() {
             const res = await fetch('/api/uploads/list');
             const { data } = await res.json();
-            console.log('oiii',data)
             const tbody = document.querySelector('#uploadsTable tbody');
             tbody.innerHTML = '';
+
             data.forEach(u => {
                 const tr = document.createElement('tr');
                 const created = new Date(u.created_at);
@@ -103,7 +94,6 @@
                 const diffMs = now - created;
                 const diffMin = Math.floor(diffMs / 60000);
 
-                // ubah ke label waktu relatif
                 let ago = '';
                 if (diffMin < 1) ago = 'just now';
                 else if (diffMin < 60) ago = `${diffMin} minute${diffMin > 1 ? 's' : ''} ago`;
@@ -118,15 +108,14 @@
                 const time = created.toLocaleString();
 
                 tr.innerHTML = `
-                    <td>${time}<br><small>(${ago})</small></td>
-                    <td>${u.filename}</td>
-                    <td class="status-${u.status}">${u.status}${u.error ? ' - ' + u.error : ''}</td>
+                    <td class="align-top">${time}<br><small class="text-muted">(${ago})</small></td>
+                    <td class="align-top">${u.filename}</td>
+                    <td class="status-${u.status} text-capitalize align-top">${u.status}${u.error ? ' - ' + u.error : ''}</td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        // poll every 3 seconds
         fetchUploads();
         setInterval(fetchUploads, 3000);
 
@@ -144,36 +133,26 @@
 
             const res = await fetch('/api/uploads', {
                 method: 'POST',
-                // headers: {
-                //     'X-CSRF-TOKEN': token
-                // },
                 body: form
             });
-            const { message, code, data } = await res.json();
-            console.log(data);
-            if (code == 201) {
-                document.getElementById('message').innerText = message || 'Uploaded';
-                fetchUploads();
-            } else {
-                document.getElementById('message').innerText = (message || 'Upload failed');
-            }
+            const { message, code } = await res.json();
+
+            document.getElementById('message').innerText =
+                code == 201 ? (message || 'Uploaded successfully') : (message || 'Upload failed');
+            fetchUploads();
         });
 
-        const dropArea = document.querySelector('.upload-box');
-        dropArea.addEventListener('dragover', e => {
+        const dropZone = document.getElementById('dropZone');
+        dropZone.addEventListener('dragover', e => {
             e.preventDefault();
-            dropArea.style.borderColor = '#666';
+            dropZone.classList.add('dragover');
         });
-        dropArea.addEventListener('dragleave', e => {
-            dropArea.style.borderColor = '#ccc';
-        });
-        dropArea.addEventListener('drop', e => {
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', e => {
             e.preventDefault();
-            dropArea.style.borderColor = '#ccc';
+            dropZone.classList.remove('dragover');
             const files = e.dataTransfer.files;
-            if (files.length) {
-                document.getElementById('file').files = files;
-            }
+            if (files.length) document.getElementById('file').files = files;
         });
     </script>
 </body>
